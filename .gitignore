@@ -30,6 +30,7 @@
 /OmniMIDI/out
 /OmniMIDI/output
 /OmniMIDI/64
+/OmniMIDI/OmniMIDI/
 /OmniMIDI/packages/
 /OmniMIDIConfigurator/OmniMIDIConfigurator/Resources/LoudMax
 /OmniMIDIConfigurator/OmniMIDIConfigurator/Resources/Text/TelemetryLoginData.txt
@@ -67,6 +68,8 @@
 /OmniMapper/OmniMapper/output
 /OmniMapper/OmniMapper/x64
 /Release
+/DeveloperContent/LIB32/*.exp
+/DeveloperContent/LIB32/*.lib
 /DeveloperContent/LIB64/*.exp
 /DeveloperContent/LIB64/*.lib
 /external_packages/newmmddk.h
