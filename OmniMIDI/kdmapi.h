@@ -7,10 +7,10 @@ Thank you Kode54 for allowing me to fork your awesome driver.
 
 #define DriverSettingsCase(Setting, Mode, Type, SettingStruct, Value, cbValue) \
 	case Setting: \
-		if (!SettingsManagedByClient) PrintMessageToDebugLog(#Setting, "Please send OM_MANAGE first!!!"); return FALSE; \
+		if (!SettingsManagedByClient) { PrintMessageToDebugLog(#Setting, "Please send OM_MANAGE first!!!"); return FALSE; } \
 		if (cbValue != sizeof(Type)) return FALSE; \
-		if (Mode = OM_SET) SettingStruct = *(Type*)Value; \
-		else if (Mode = OM_GET) *(Type*)Value = SettingStruct; \
+		if (Mode == OM_SET) SettingStruct = *(Type*)Value; \
+		else if (Mode == OM_GET) *(Type*)Value = SettingStruct; \
 		else return FALSE; \
 		break;
 
@@ -677,6 +677,15 @@ extern "C" VOID KDMAPI ResetKDMAPIStream() {
 		ResetSynth(FALSE, TRUE);
 }
 
+extern "C" VOID KDMAPI ResetKDMAPIStreamMultiPort(BYTE port) noexcept {
+	if (!bass_initialized) return;
+	int baseChannel = port * 16;
+	for (int ch = baseChannel; ch < baseChannel + 16; ch++) {
+		_BMSE(OMStream, ch, MIDI_EVENT_NOTESOFF, NULL);
+		_BMSE(OMStream, ch, MIDI_EVENT_SOUNDOFF, NULL);
+	}
+}
+
 extern "C" BOOL KDMAPI SendCustomEvent(DWORD eventtype, DWORD chan, DWORD param) noexcept {
 	return _BMSE(OMStream, chan, eventtype, param);
 }
@@ -689,6 +698,90 @@ extern "C" VOID KDMAPI SendDirectData(DWORD dwMsg) noexcept {
 extern "C" VOID KDMAPI SendDirectDataNoBuf(DWORD dwMsg) noexcept {
 	// Send the data directly to BASSMIDI, bypassing the buffer altogether
 	_PforBASSMIDI(dwMsg);
+}
+
+extern "C" VOID KDMAPI SendDirectDataMultiPort(DWORD dwMsg, BYTE port) noexcept {
+	unsigned int tev = dwMsg;
+
+	if (CHKLRS(GETSTATUS(tev)) != 0) LastRunningStatus = GETSTATUS(tev);
+	else tev = tev << 8 | LastRunningStatus;
+
+	unsigned int evt = MIDI_SYSTEM_DEFAULT;
+	unsigned int ev = 0;
+	unsigned char status = GETSTATUS(tev);
+	unsigned char cmd = GETCMD(tev);
+	unsigned char ch = (port * 16) + GETCHANNEL(tev);
+	unsigned char param1 = GETFP(tev);
+	unsigned char param2 = GETSP(tev);
+
+	switch (cmd) {
+	case MIDI_NOTEON:
+		evt = MIDI_EVENT_NOTE;
+		ev = param2 << 8 | param1;
+		break;
+	case MIDI_NOTEOFF:
+		evt = MIDI_EVENT_NOTE;
+		ev = param1;
+		break;
+	case MIDI_POLYAFTER:
+		evt = MIDI_EVENT_KEYPRES;
+		ev = param2 << 8 | param1;
+		break;
+	case MIDI_PROGCHAN:
+		evt = MIDI_EVENT_PROGRAM;
+		ev = param1;
+		break;
+	case MIDI_CHANAFTER:
+		evt = MIDI_EVENT_CHANPRES;
+		ev = param1;
+		break;
+	case MIDI_PITCHWHEEL:
+		evt = MIDI_EVENT_PITCH;
+		ev = param2 << 7 | param1;
+		break;
+	default:
+		switch (status) {
+		case 0xFF:
+			_BMSE(OMStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_DEFAULT);
+			return;
+		default:
+		{
+			if (!(tev - 0x80 & 0xC0))
+			{
+				unsigned char buf[7];
+				buf[0] = 0xFF; buf[1] = 0x21; buf[2] = 0x01; buf[3] = port;
+				buf[4] = (unsigned char)(tev & 0xFF);
+				buf[5] = (unsigned char)((tev >> 8) & 0xFF);
+				buf[6] = (unsigned char)((tev >> 16) & 0xFF);
+				_BMSEs(OMStream, BASS_MIDI_EVENTS_RAW, buf, 7);
+				return;
+			}
+
+			unsigned int len = 3;
+			if (!((tev - 0xC0) & 0xE0)) len = 2;
+			else if (cmd == 0xF0)
+			{
+				switch (GETCHANNEL(tev))
+				{
+				case 0x3:
+					len = 2;
+					break;
+				case 0xA:
+				case 0xB:
+				case 0xC:
+				case 0xE:
+				default:
+					return;
+				}
+			}
+
+			_BMSEs(OMStream, BASS_MIDI_EVENTS_RAW, &tev, len);
+			return;
+		}
+		}
+	}
+
+	_BMSE(OMStream, ch, evt, ev);
 }
 
 extern "C" MMRESULT KDMAPI PrepareLongData(MIDIHDR * IIMidiHdr, UINT IIMidiHdrSize) {
@@ -839,6 +932,17 @@ extern "C" MMRESULT KDMAPI SendDirectLongDataNoBuf(LPSTR MidiHdrData, DWORD Midi
 	return MMSYSERR_NOERROR;
 }
 
+extern "C" MMRESULT KDMAPI SendDirectLongDataMultiPort(LPSTR data, DWORD len, BYTE port) noexcept {
+	if (!data || len < 1)
+		return MMSYSERR_INVALPARAM;
+
+	unsigned char portMeta[4] = { 0xFF, 0x21, 0x01, port };
+	_BMSEs(OMStream, BASS_MIDI_EVENTS_RAW, portMeta, 4);
+	_BMSEs(OMStream, BASS_MIDI_EVENTS_RAW, data, len);
+
+	return MMSYSERR_NOERROR;
+}
+
 extern "C" BOOL KDMAPI DriverSettings(DWORD Setting, DWORD Mode, LPVOID Value, UINT cbValue) {
 	switch (Setting) 
 	{
@@ -897,7 +1001,6 @@ extern "C" BOOL KDMAPI DriverSettings(DWORD Setting, DWORD Mode, LPVOID Value, U
 	DriverSettingsCase(OM_ENABLEDELAYNOTEOFF, Mode, BOOL, ManagedSettings.DelayNoteOff, Value, cbValue);
 	DriverSettingsCase(OM_DELAYNOTEOFFVAL, Mode, DWORD, ManagedSettings.DelayNoteOffValue, Value, cbValue);
 	DriverSettingsCase(OM_CHANUPDLENGTH, Mode, DWORD, ManagedSettings.ChannelUpdateLength, Value, cbValue);
-	DriverSettingsCase(OM_UNLOCKCHANS, Mode, BOOL, UnlimitedChannels, Value, cbValue);
 
 	default:
 	{

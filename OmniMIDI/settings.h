@@ -1035,7 +1035,7 @@ void LoadSettings(BOOL Restart, BOOL RT)
 			if (RT) BASS_ChannelSetAttribute(OMStream, BASS_ATTRIB_MIDI_VOICES, ManagedSettings.MaxVoices);
 		}
 
-		if (RT) BASS_ChannelSetAttribute(OMStream, BASS_ATTRIB_MIDI_CHANS, UnlimitedChannels ? 128.0f : 16.0f);
+		if (RT) BASS_ChannelSetAttribute(OMStream, BASS_ATTRIB_MIDI_CHANS, 128.0f);
 
 		if (!RT) PrintMessageToDebugLog("LoadSettingsFuncs", "Settings loaded.");
 	}

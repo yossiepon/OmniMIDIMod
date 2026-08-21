@@ -4,7 +4,68 @@
   A reboot of the original <a href="https://github.com/kode54/BASSMIDI-Driver">BASSMIDI Driver by Kode54</a>, with more features.
 </p>
 
-## F.A.Q.
+## OmniMIDI Mod
+
+This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/OmniMIDI) that adds **KDMAPI multi-port 128-channel support** (8 ports × 16ch).
+
+### What's Changed
+
+- **Bug fix:** `DriverSettingsCase` macro ([Issue #274](https://github.com/KeppySoftware/OmniMIDI/issues/274))
+- **128ch support:** BASSMIDI stream unconditionally initialized with 128 channels
+- **New APIs** for multi-port output:
+
+| Function | Description |
+|---|---|
+| `SendDirectDataMultiPort(DWORD dwMsg, BYTE port)` | Send short message to a specific port (0–7) |
+| `SendDirectLongDataMultiPort(LPSTR data, DWORD len, BYTE port)` | Send SysEx to a specific port |
+| `ResetKDMAPIStreamMultiPort(BYTE port)` | Reset 16 channels for a specific port |
+
+### Usage
+
+1. Place `OmniMIDI.dll` in the same directory as your MIDI application's exe
+2. Detect the Mod: `GetProcAddress("SendDirectDataMultiPort")` returns non-NULL on Mod, NULL on original
+3. Use `SendDirectDataMultiPort(dwMsg, port)` for port-routed output
+4. Falls back to standard `SendDirectData(dwMsg)` (16ch) on original OmniMIDI
+
+**Requires:** OmniMIDI installed on the system (BASS DLLs are required). The OmniMIDI installer places both x64 and x86 BASS DLLs in the appropriate system directories.
+
+### ⚠ Volume Warning
+
+**Extended channels (16+) play at full MIDI volume by default.** Excessively loud output may damage audio equipment or cause hearing injury. Lower the master volume in OmniMIDI Configurator before playing multi-port MIDI files.
+
+- **Configurator master volume (OutputVolume):** Controls the entire BASSMIDI stream — applies to all 128 channels. Use this to adjust overall volume.
+- **Mixer per-channel faders:** Only affect channels 0–15. Have no effect on channels 16+.
+- **Mixer "All" fader:** Bulk control for the per-channel faders (ch 0–15 only) — this is NOT a master volume and does not affect channels 16+.
+- **LoudMax limiter (optional):** OmniMIDI supports [LoudMax](https://loudmax.blogspot.com/) as a VST limiter. Install via OmniMIDI Configurator (`Extensions` → `LoudMax, anti-clipping solution` → `Install LoudMax`). The Configurator extracts both 32-bit and 64-bit DLLs to `%USERPROFILE%\OmniMIDI\LoudMax\`, and OmniMIDI automatically loads the appropriate one onto the BASSMIDI stream, limiting output across all 128 channels. This provides an additional safety net against excessively loud output.
+
+### Technical Notes
+
+**Processing path:** The MultiPort APIs bypass OmniMIDI's internal ring buffer and settings processing (`PrepareForBASSMIDI`), sending events directly to BASSMIDI. This means OmniMIDI Configurator settings such as FullVelocity, Transpose, and NoteLength Override do not apply to messages sent via `SendDirectDataMultiPort`. Applications that use their own MIDI processing pipeline should use the MultiPort APIs directly.
+
+**Message types:** All standard MIDI message types (Note On/Off, CC, Program Change, Pitch Bend, etc.) are handled transparently by `SendDirectDataMultiPort`. The caller does not need to handle any message type differently — the function internally routes each type to BASSMIDI using the appropriate mechanism for the extended channel.
+
+**SysEx port routing:** `SendDirectLongDataMultiPort` prepends a BASSMIDI port prefix meta event (`0xFF 0x21 0x01 port`) before the SysEx data, so GS part-specific SysEx (e.g., Drum Part Change, Part Volume) is correctly applied to the target port's channels.
+
+### Known Limitations
+
+MIDI playback on extended channels (ch 16+) works correctly — Note On/Off, CC, Program Change, Pitch Bend, and SysEx are all routed through BASSMIDI's native multi-port support. SoundFonts apply to all 128 channels.
+
+The following OmniMIDI Configurator features are **limited to channels 0–15** and do not apply to extended channels:
+
+- Per-channel mixer level override (`cvalues[16]`)
+- Per-channel instrument/bank override (`cbank[16]`, `cpreset[16]`)
+- Per-channel pitch shift (`pitchshiftchan[16]`)
+- Mixer window active voice display (`ActiveVoices[16]`)
+
+These are Configurator-specific overrides. Standard MIDI messages (CC#7 Volume, Program Change, etc.) sent via `SendDirectDataMultiPort` work correctly on all channels through BASSMIDI.
+
+### Downloads
+
+See [Releases](https://github.com/yossiepon/OmniMIDIMod/releases) for the latest build.
+
+---
+
+## Original OmniMIDI F.A.Q.
 
 ### Was it really necessary to create a complete separate fork of BASSMIDI Driver?
 I feel like it was necessary, yes.

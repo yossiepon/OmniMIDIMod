@@ -16,11 +16,11 @@ KDMAPI_ONLYSTRUCTS = Used by MIDI apps who want to use the KDMAPI functions
 #define KDMAPI WINAPI
 #endif
 
-// KDMAPI version
+// KDMAPI version (Mod: CUR_REV=65535 to distinguish from upstream)
 #define CUR_MAJOR	4
 #define CUR_MINOR	1
 #define CUR_BUILD	0
-#define CUR_REV		5
+#define CUR_REV		65535
 
 // Audio engines
 #define AUDTOWAV 0
@@ -221,6 +221,9 @@ BOOL KDMAPI(TerminateKDMAPIStream)();
 // Resets OmniMIDI and all its MIDI channels through KDMAPI. (Like midiOutReset)
 VOID KDMAPI(ResetKDMAPIStream)();
 
+// Resets 16 MIDI channels for the specified port through KDMAPI.
+VOID KDMAPI(ResetKDMAPIStreamMultiPort)(BYTE port) noexcept;
+
 // Send short messages through KDMAPI. (Like midiOutShortMsg)
 BOOL KDMAPI(SendCustomEvent)(DWORD eventtype, DWORD chan, DWORD param) noexcept;
 
@@ -230,11 +233,17 @@ VOID KDMAPI(SendDirectData)(DWORD dwMsg);
 // Send short messages through KDMAPI like SendDirectData, but bypasses the buffer. (Like midiOutShortMsg)
 VOID KDMAPI(SendDirectDataNoBuf)(DWORD dwMsg);
 
+// Send short messages to extended channels (port * 16 + channel) through KDMAPI.
+VOID KDMAPI(SendDirectDataMultiPort)(DWORD dwMsg, BYTE port) noexcept;
+
 // Send long messages through KDMAPI. (Like midiOutLongMsg)
 UINT KDMAPI(SendDirectLongData)(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize);
 
 // Send long messages through KDMAPI like SendDirectLongData, but bypasses the buffer. (Like midiOutLongMsg)
 UINT KDMAPI(SendDirectLongDataNoBuf)(LPSTR MidiHdrData, DWORD MidiHdrDataLen);
+
+// Send long messages to a specific port through KDMAPI.
+MMRESULT KDMAPI(SendDirectLongDataMultiPort)(LPSTR data, DWORD len, BYTE port) noexcept;
 
 // Prepares the long data, and locks its memory to prevent apps from writing to it.
 UINT KDMAPI(PrepareLongData)(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize);
