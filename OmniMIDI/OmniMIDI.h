@@ -16,11 +16,11 @@ KDMAPI_ONLYSTRUCTS = Used by MIDI apps who want to use the KDMAPI functions
 #define KDMAPI WINAPI
 #endif
 
-// KDMAPI version
+// KDMAPI version (Mod: CUR_REV=65535 to distinguish from upstream)
 #define CUR_MAJOR	4
 #define CUR_MINOR	1
 #define CUR_BUILD	0
-#define CUR_REV		5
+#define CUR_REV		65535
 
 // Audio engines
 #define AUDTOWAV 0
