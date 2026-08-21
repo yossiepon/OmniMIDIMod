@@ -550,8 +550,8 @@ BOOL InitializeStream(INT32 mixfreq) {
 		PrintMessageToDebugLog("InitializeStreamFunc", "Existing BASS stream freed...");
 	}
 
-	// Create the stream with 16 MIDI channels, and the various settings
-	OMStream = BASS_MIDI_StreamCreate(16,
+	// Create the stream with 128 MIDI channels (8 ports x 16 channels)
+	OMStream = BASS_MIDI_StreamCreate(128,
 		(ManagedSettings.BASSDSMode ? BASS_MIDI_ASYNC : 0) |
 		(ManagedSettings.CurrentEngine != BASS_OUTPUT ? BASS_STREAM_DECODE : 0) |
 		(ManagedSettings.IgnoreSysReset ? BASS_MIDI_NOSYSRESET : 0) |
