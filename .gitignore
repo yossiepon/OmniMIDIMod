@@ -67,6 +67,8 @@
 /OmniMapper/OmniMapper/output
 /OmniMapper/OmniMapper/x64
 /Release
+/DeveloperContent/LIB64/*.exp
+/DeveloperContent/LIB64/*.lib
 /external_packages/newmmddk.h
 /external_packages/lib/*.dll
 /external_packages/lib64/*.dll
