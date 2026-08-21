@@ -174,7 +174,6 @@ HANDLE hPipe = INVALID_HANDLE_VALUE;		// debug info
 
 // Main values
 DWORD RestartValue = 0;							// For AudToWAV
-BOOL UnlimitedChannels = 0;						// For KDMAPI
 
 // Delay options
 DWORD FNoteLengthValue = 0.0;

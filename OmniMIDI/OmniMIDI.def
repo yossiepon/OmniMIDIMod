@@ -8,10 +8,13 @@ EXPORTS
 	InitializeKDMAPIStream
 	TerminateKDMAPIStream
 	ResetKDMAPIStream
+	ResetKDMAPIStreamMultiPort
 	SendCustomEvent
 	SendDirectData
+	SendDirectDataMultiPort
 	SendDirectDataNoBuf
 	SendDirectLongData
+	SendDirectLongDataMultiPort
 	SendDirectLongDataNoBuf
 	PrepareLongData
 	UnprepareLongData
