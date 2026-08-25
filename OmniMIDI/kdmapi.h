@@ -377,6 +377,9 @@ void Supervisor(LPVOID lpV) {
 					SetNoteValuesFromSettings();		// Check if custom preset/bank or finetune are applied
 					InitializeEventsProcesserThreads(); // Check if the user wants to parse the notes through a separate thread
 
+					ParseDebugData();
+					ParseExtendedDebugData();
+
 					// Check the current output volume
 					CheckVolume(FALSE);
 
@@ -1029,6 +1032,11 @@ extern "C" DebugInfo* KDMAPI GetDriverDebugInfo() {
 	// Parse the debug info, and return them to the app.
 	PrintMessageToDebugLog("KDMAPI_GDDI", "Passed pointer to DebugInfo to the KDMAPI-ready application.");
 	return &ManagedDebugInfo;
+}
+
+extern "C" ExtendedDebugInfo* KDMAPI GetModExtendedDebugInfo() {
+	PrintMessageToDebugLog("KDMAPI_GMEDI", "Passed pointer to ExtendedDebugInfo to the KDMAPI-ready application.");
+	return &ManagedExtendedDebugInfo;
 }
 
 extern "C" BOOL KDMAPI LoadCustomSoundFontsList(LPWSTR Directory) {
