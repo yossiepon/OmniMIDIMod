@@ -61,7 +61,27 @@ The struct is updated every 50ms by OmniMIDI's internal supervisor loop. The ori
 1. Detect the Mod: `GetProcAddress("GetModExtendedDebugInfo")` returns non-NULL on Mod
 2. On Mod: call `GetModExtendedDebugInfo()` to get a pointer to `ExtendedDebugInfo` (128ch, includes all `DebugInfo` fields)
 3. On original: fall back to `GetProcAddress("GetDriverDebugInfo")` for 16ch-only `DebugInfo`
-4. Use `StructSize` to check field availability for forward compatibility with future struct extensions
+4. Use `StructSize` to check field availability for forward compatibility (see table below)
+
+#### StructSize compatibility
+
+The struct may grow in future releases by appending new fields. Check `StructSize` before reading fields added after the initial release:
+
+| Mod version | StructSize | Last field | Notes |
+|---|---|---|---|
+| 2026-08-25 | 1096 | `NumChannels` (offset 1092) | Initial release |
+
+```cpp
+ExtendedDebugInfo* info = fnGetModExtendedDebugInfo();
+
+// Fields up to NumChannels are always present (initial release)
+DWORD voices = info->TotalActiveVoices;
+
+// Future fields: check StructSize before reading
+// if (info->StructSize >= offsetof(ExtendedDebugInfo, NewField) + sizeof(DWORD)) {
+//     DWORD val = info->NewField;
+// }
+```
 
 **Requires:** OmniMIDI installed on the system (BASS DLLs are required). The OmniMIDI installer places both x64 and x86 BASS DLLs in the appropriate system directories.
 
