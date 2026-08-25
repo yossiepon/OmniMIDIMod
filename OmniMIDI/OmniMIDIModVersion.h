@@ -5,4 +5,4 @@
 #define MOD_VER_MAJOR     14
 #define MOD_VER_MINOR     8
 #define MOD_VER_PATCH     5
-#define MOD_VER_DATE_STR  "2026-08-21"
+#define MOD_VER_DATE_STR  "2026-08-25"
