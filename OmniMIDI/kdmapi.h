@@ -377,6 +377,7 @@ void Supervisor(LPVOID lpV) {
 					SetNoteValuesFromSettings();		// Check if custom preset/bank or finetune are applied
 					InitializeEventsProcesserThreads(); // Check if the user wants to parse the notes through a separate thread
 
+					ParseDebugData();
 					ParseExtendedDebugData();
 
 					// Check the current output volume
