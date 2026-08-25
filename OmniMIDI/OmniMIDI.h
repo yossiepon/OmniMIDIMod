@@ -23,10 +23,17 @@ KDMAPI_ONLYSTRUCTS = Used by MIDI apps who want to use the KDMAPI functions
 #define CUR_REV		65535
 
 // Mod version (reported via ExtendedDebugInfo)
-#define MOD_VER_MAJOR	14
-#define MOD_VER_MINOR	8
-#define MOD_VER_PATCH	5
-#define MOD_VER_DATE	20260821
+#include "OmniMIDIModVersion.h"
+
+#ifndef RC_INVOKED
+constexpr DWORD _ParseModDate(const char* s) {
+	return (s[0]-'0')*10000000 + (s[1]-'0')*1000000 +
+	       (s[2]-'0')*100000   + (s[3]-'0')*10000 +
+	       (s[5]-'0')*1000     + (s[6]-'0')*100 +
+	       (s[8]-'0')*10       + (s[9]-'0');
+}
+#define MOD_VER_DATE _ParseModDate(MOD_VER_DATE_STR)
+#endif
 
 // Audio engines
 #define AUDTOWAV 0
