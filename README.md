@@ -6,7 +6,7 @@
 
 ## OmniMIDI Mod
 
-This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/OmniMIDI) that adds **KDMAPI multi-port 128-channel support** (8 ports × 16ch).
+This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/OmniMIDI) that adds **KDMAPI multi-port 128-channel support** (8 ports × 16ch) and **extended debug info** with 128-channel synthesizer metrics.
 
 ### What's Changed
 
@@ -20,12 +20,48 @@ This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/
 | `SendDirectLongDataMultiPort(LPSTR data, DWORD len, BYTE port)` | Send SysEx to a specific port |
 | `ResetKDMAPIStreamMultiPort(BYTE port)` | Reset 16 channels for a specific port |
 
+- **New API** for extended debug info:
+
+| Function | Description |
+|---|---|
+| `GetModExtendedDebugInfo()` | Returns a pointer to `ExtendedDebugInfo` struct with 128ch metrics |
+
+The `ExtendedDebugInfo` struct is a superset of the original `DebugInfo`, covering all 128 channels:
+
+| Field | Type | Description |
+|---|---|---|
+| `StructSize` | DWORD | `sizeof(ExtendedDebugInfo)` — for forward-compatible field availability checks |
+| `ModVersionMajor/Minor/Patch` | DWORD | Mod version number |
+| `ModVersionDate` | DWORD | Mod version date (YYYYMMDD) |
+| `RenderingTime` | FLOAT | BASS audio rendering CPU load (%) |
+| `AudioLatency` | DOUBLE | Audio output latency (ms) |
+| `AudioBufferSize` | DWORD | Buffer size (frames) |
+| `ASIOInputLatency` | DOUBLE | ASIO input latency |
+| `ASIOOutputLatency` | DOUBLE | ASIO output latency |
+| `CurrentSFList` | DWORD | Current SoundFont list index |
+| `ActiveVoicesEx[128]` | DWORD[128] | Per-channel active voices (all 8 ports) |
+| `TotalActiveVoices` | DWORD | All-channel total active voices |
+| `MaxVoices` | DWORD | Voice limit setting |
+| `ActiveNotesEx[128]` | DWORD[128] | Per-channel active notes (all 8 ports) |
+| `NumChannels` | DWORD | Stream channel count (128 for Mod) |
+
+The struct is updated every 50ms by OmniMIDI's internal supervisor loop. The original `GetDriverDebugInfo()` and its `DebugInfo` struct remain unchanged for upstream compatibility.
+
 ### Usage
+
+#### Multi-port output
 
 1. Place `OmniMIDI.dll` in the same directory as your MIDI application's exe
 2. Detect the Mod: `GetProcAddress("SendDirectDataMultiPort")` returns non-NULL on Mod, NULL on original
 3. Use `SendDirectDataMultiPort(dwMsg, port)` for port-routed output
 4. Falls back to standard `SendDirectData(dwMsg)` (16ch) on original OmniMIDI
+
+#### Extended debug info
+
+1. Detect the Mod: `GetProcAddress("GetModExtendedDebugInfo")` returns non-NULL on Mod
+2. On Mod: call `GetModExtendedDebugInfo()` to get a pointer to `ExtendedDebugInfo` (128ch, includes all `DebugInfo` fields)
+3. On original: fall back to `GetProcAddress("GetDriverDebugInfo")` for 16ch-only `DebugInfo`
+4. Use `StructSize` to check field availability for forward compatibility with future struct extensions
 
 **Requires:** OmniMIDI installed on the system (BASS DLLs are required). The OmniMIDI installer places both x64 and x86 BASS DLLs in the appropriate system directories.
 
