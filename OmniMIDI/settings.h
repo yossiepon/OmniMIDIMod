@@ -1247,6 +1247,56 @@ void ParseDebugData() {
 	}
 }
 
+void ParseExtendedDebugData() {
+	ManagedExtendedDebugInfo.StructSize = sizeof(ExtendedDebugInfo);
+	ManagedExtendedDebugInfo.ModVersionMajor = MOD_VER_MAJOR;
+	ManagedExtendedDebugInfo.ModVersionMinor = MOD_VER_MINOR;
+	ManagedExtendedDebugInfo.ModVersionPatch = MOD_VER_PATCH;
+	ManagedExtendedDebugInfo.ModVersionDate = MOD_VER_DATE;
+
+	if (BASSLoadedToMemory && bass_initialized) {
+		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_CPU, &ManagedExtendedDebugInfo.RenderingTime);
+
+		ManagedExtendedDebugInfo.AudioLatency = ManagedDebugInfo.AudioLatency;
+		ManagedExtendedDebugInfo.AudioBufferSize = ManagedDebugInfo.AudioBufferSize;
+		ManagedExtendedDebugInfo.ASIOInputLatency = ManagedDebugInfo.ASIOInputLatency;
+		ManagedExtendedDebugInfo.ASIOOutputLatency = ManagedDebugInfo.ASIOOutputLatency;
+		ManagedExtendedDebugInfo.CurrentSFList = ManagedDebugInfo.CurrentSFList;
+
+		for (int i = 0; i < 128; ++i) {
+			int temp = BASS_MIDI_StreamGetEvent(OMStream, i, MIDI_EVENT_VOICES);
+			ManagedExtendedDebugInfo.ActiveVoicesEx[i] = (temp != -1) ? (DWORD)temp : 0;
+		}
+
+		float totalVoices = 0.0f;
+		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_MIDI_VOICES_ACTIVE, &totalVoices);
+		ManagedExtendedDebugInfo.TotalActiveVoices = (DWORD)totalVoices;
+
+		float maxVoices = 0.0f;
+		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_MIDI_VOICES, &maxVoices);
+		ManagedExtendedDebugInfo.MaxVoices = (DWORD)maxVoices;
+
+		for (int i = 0; i < 128; ++i) {
+			int temp = BASS_MIDI_StreamGetEvent(OMStream, i, MIDI_EVENT_NOTES);
+			ManagedExtendedDebugInfo.ActiveNotesEx[i] = (temp != -1) ? (DWORD)temp : 0;
+		}
+
+		float numChans = 0.0f;
+		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_MIDI_CHANS, &numChans);
+		ManagedExtendedDebugInfo.NumChannels = (DWORD)numChans;
+	}
+	else {
+		ManagedExtendedDebugInfo.RenderingTime = 0.0f;
+		ManagedExtendedDebugInfo.AudioLatency = 0.0;
+		ManagedExtendedDebugInfo.AudioBufferSize = 0;
+		memset(ManagedExtendedDebugInfo.ActiveVoicesEx, 0, sizeof(ManagedExtendedDebugInfo.ActiveVoicesEx));
+		ManagedExtendedDebugInfo.TotalActiveVoices = 0;
+		ManagedExtendedDebugInfo.MaxVoices = 0;
+		memset(ManagedExtendedDebugInfo.ActiveNotesEx, 0, sizeof(ManagedExtendedDebugInfo.ActiveNotesEx));
+		ManagedExtendedDebugInfo.NumChannels = 0;
+	}
+}
+
 void SendDebugDataToPipe() {
 	try {
 		FillContentDebug();

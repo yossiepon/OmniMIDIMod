@@ -43,6 +43,7 @@ FILE* DebugLog = nullptr;
 BOOL SettingsManagedByClient;
 Settings ManagedSettings = Settings();
 DebugInfo ManagedDebugInfo = DebugInfo();
+ExtendedDebugInfo ManagedExtendedDebugInfo = {};
 
 // Settings managed by client
 BOOL AlreadyStartedOnce = FALSE;
