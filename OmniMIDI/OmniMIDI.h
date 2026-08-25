@@ -22,6 +22,19 @@ KDMAPI_ONLYSTRUCTS = Used by MIDI apps who want to use the KDMAPI functions
 #define CUR_BUILD	0
 #define CUR_REV		65535
 
+// Mod version (reported via ExtendedDebugInfo)
+#include "OmniMIDIModVersion.h"
+
+#ifndef RC_INVOKED
+constexpr DWORD _ParseModDate(const char* s) {
+	return (s[0]-'0')*10000000 + (s[1]-'0')*1000000 +
+	       (s[2]-'0')*100000   + (s[3]-'0')*10000 +
+	       (s[5]-'0')*1000     + (s[6]-'0')*100 +
+	       (s[8]-'0')*10       + (s[9]-'0');
+}
+#define MOD_VER_DATE _ParseModDate(MOD_VER_DATE_STR)
+#endif
+
 // Audio engines
 #define AUDTOWAV 0
 #define BASS_OUTPUT 1
@@ -108,6 +121,34 @@ typedef struct
 	// Add more down here
 	// ------------------
 } DebugInfo;
+
+// Extended debug info (OmniMIDI Mod only)
+// Superset of DebugInfo with 128ch support and additional BASSMIDI metrics.
+// Use StructSize to determine field availability for forward compatibility.
+typedef struct
+{
+	// Header
+	DWORD StructSize;
+	DWORD ModVersionMajor;
+	DWORD ModVersionMinor;
+	DWORD ModVersionPatch;
+	DWORD ModVersionDate;			// YYYYMMDD format
+
+	// DebugInfo-equivalent fields
+	FLOAT  RenderingTime;			// BASS_ATTRIB_CPU
+	DOUBLE AudioLatency;			// Audio output latency (ms)
+	DWORD  AudioBufferSize;			// Buffer size (frames)
+	DOUBLE ASIOInputLatency;
+	DOUBLE ASIOOutputLatency;
+	DWORD  CurrentSFList;
+
+	// Extended fields (128ch)
+	DWORD ActiveVoicesEx[128];		// Per-channel active voices (MIDI_EVENT_VOICES)
+	DWORD TotalActiveVoices;		// All-channel total (BASS_ATTRIB_MIDI_VOICES_ACTIVE)
+	DWORD MaxVoices;				// Voice limit setting (BASS_ATTRIB_MIDI_VOICES)
+	DWORD ActiveNotesEx[128];		// Per-channel active notes (MIDI_EVENT_NOTES)
+	DWORD NumChannels;				// Stream channel count (BASS_ATTRIB_MIDI_CHANS)
+} ExtendedDebugInfo;
 
 #ifdef KDMAPI_OMONLY
 // The settings struct, you can initialize it with the defaults value through by assigning DEFAULT_SETTINGS
@@ -256,6 +297,9 @@ BOOL KDMAPI(DriverSettings)(DWORD Setting, DWORD Mode, LPVOID Value, UINT cbValu
 
 // Get a pointer to the debug info of the driver.
 DebugInfo* KDMAPI(GetDriverDebugInfo)();
+
+// Get a pointer to the extended debug info (Mod only).
+ExtendedDebugInfo* KDMAPI(GetModExtendedDebugInfo)();
 
 // Load a custom sflist. (You can also load SF2 and SFZ files)
 VOID KDMAPI(LoadCustomSoundFontsList)(LPWSTR Directory);
