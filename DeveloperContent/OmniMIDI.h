@@ -84,7 +84,7 @@ KDMAPI_ONLYSTRUCTS = Used by MIDI apps who want to use the KDMAPI functions
 // The debug info struct, you can set the default values by assigning DEFAULT_DEBUG
 typedef struct
 {
-	FLOAT RenderingTime = 0.0f;				// Current BASS rendering time
+	FLOAT RenderingTime = 0.0f;				// BASS_ATTRIB_CPU (CPU usage percentage)
 	DWORD ActiveVoices[16] = { 0 };			// Active voices for each channel
 
 	// ASIO debug info (DO NOT USE)
@@ -121,7 +121,7 @@ typedef struct
 	DWORD ModVersionDate;			// YYYYMMDD format
 
 	// DebugInfo-equivalent fields
-	FLOAT  RenderingTime;			// BASS_ATTRIB_CPU
+	FLOAT  CpuUsage;				// BASS_ATTRIB_CPU (CPU usage percentage)
 	DOUBLE AudioLatency;			// Audio output latency (ms)
 	DWORD  AudioBufferSize;			// Buffer size (frames)
 	DOUBLE ASIOInputLatency;
@@ -134,6 +134,14 @@ typedef struct
 	DWORD MaxVoices;				// Voice limit setting (BASS_ATTRIB_MIDI_VOICES)
 	DWORD ActiveNotesEx[128];		// Per-channel active notes (MIDI_EVENT_NOTES)
 	DWORD NumChannels;				// Stream channel count (BASS_ATTRIB_MIDI_CHANS)
+
+	// Audio settings (IMP-31 extension)
+	DWORD AudioFrequency;			// Sample rate (e.g. 48000)
+	DWORD CurrentEngine;			// Audio engine (WASAPI/ASIO/XAudio)
+	DWORD BufferLength;				// Buffer length (ms)
+	DWORD OutputVolume;				// Output volume (0-10000)
+	DWORD AudioBitDepth;			// Bit depth (0 = float)
+	BOOL  SincInter;				// Sinc interpolation ON/OFF
 } ExtendedDebugInfo;
 
 #ifdef KDMAPI_OMONLY

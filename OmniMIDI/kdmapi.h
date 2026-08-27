@@ -7,7 +7,7 @@ Thank you Kode54 for allowing me to fork your awesome driver.
 
 #define DriverSettingsCase(Setting, Mode, Type, SettingStruct, Value, cbValue) \
 	case Setting: \
-		if (!SettingsManagedByClient) { PrintMessageToDebugLog(#Setting, "Please send OM_MANAGE first!!!"); return FALSE; } \
+		if (Mode == OM_SET && !SettingsManagedByClient) { PrintMessageToDebugLog(#Setting, "Please send OM_MANAGE first!!!"); return FALSE; } \
 		if (cbValue != sizeof(Type)) return FALSE; \
 		if (Mode == OM_SET) SettingStruct = *(Type*)Value; \
 		else if (Mode == OM_GET) *(Type*)Value = SettingStruct; \
