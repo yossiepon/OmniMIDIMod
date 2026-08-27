@@ -6,7 +6,12 @@
 #define MOD_VER_MINOR     8
 #define MOD_VER_PATCH     5
 #define MOD_VER_REV       65535
-#define MOD_VER_STRING    "14.8.5.65535"
+
+// Auto-derived from numeric macros (no manual sync required)
+#define _MOD_STRINGIFY(x) #x
+#define _MOD_TOSTRING(x) _MOD_STRINGIFY(x)
+#define MOD_VER_STRING    _MOD_TOSTRING(MOD_VER_MAJOR) "." _MOD_TOSTRING(MOD_VER_MINOR) "." _MOD_TOSTRING(MOD_VER_PATCH) "." _MOD_TOSTRING(MOD_VER_REV)
+
 #define MOD_VER_DATE_STR  "2026-08-28"
 
 #define MOD_COPYRIGHT_YEAR_START  2026
