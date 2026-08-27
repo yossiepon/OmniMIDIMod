@@ -186,6 +186,9 @@ The available arguments are:
 - `DWORD Mode`: OM_SET if you want to set the setting, or OM_GET if you want to get its current value.
 - `LPVOID Value`: A pointer to the value
 - `UINT cbValue`: The size of the object. *(sizeof(Value))*
+
+> **OmniMIDI Mod:** `OM_GET` no longer requires `OM_MANAGE` — read-only queries work without side effects. `OM_SET` still requires `OM_MANAGE` as before.
+
 ```c
 BOOL(WINAPI*KDMDriverSettings)(DWORD Setting, DWORD Mode, LPVOID Value, UINT cbValue) = 0;
 KDMDriverSettings = (void*)GetProcAddress(GetModuleHandle("OmniMIDI"), "DriverSettings");
@@ -193,20 +196,13 @@ KDMDriverSettings = (void*)GetProcAddress(GetModuleHandle("OmniMIDI"), "DriverSe
 	DWORD Voices = 10;
 	DWORD Frequency = 0;
 
-	// Tell the driver that you're going to manage the settings from now on
-	KDMDriverSettings(0, OM_MANAGE, nullptr, 0);
-
-	// I want to change the voices
-	KDMDriverSettings(OM_MAXVOICES, OM_SET, &Voices, sizeof(Voices));
-	
-	// Now I want to get the current frequency
+	// (Mod) GET works without OM_MANAGE:
 	if (KDMDriverSettings(OM_AUDIOFREQ, OM_GET, &Frequency, sizeof(Frequency)))
-	{	
-		// "The frequency is now 44100Hz!"
-		printf("The frequency is now %dHz", Frequency);
-	}
+		printf("The frequency is %dHz\n", Frequency);
 
-	// Stop managing the settings
+	// SET still requires OM_MANAGE:
+	KDMDriverSettings(0, OM_MANAGE, nullptr, 0);
+	KDMDriverSettings(OM_MAXVOICES, OM_SET, &Voices, sizeof(Voices));
 	KDMDriverSettings(0, OM_LEAVE, nullptr, 0);
 ...
 ```
@@ -214,6 +210,8 @@ KDMDriverSettings = (void*)GetProcAddress(GetModuleHandle("OmniMIDI"), "DriverSe
 
 ### **GetDriverDebugInfo**
 Allows developers to get the driver's current rendering time and the voices that are currently active in the audio stream.<br />
+
+> **OmniMIDI Mod:** For Mod-specific 128ch metrics and audio settings, use `GetModExtendedDebugInfo()` instead — see [README](../README.md).
 
 ```c
 DebugInfo*(WINAPI*KDMGetDebugInfo)() = 0;
@@ -223,8 +221,8 @@ KDMGetDebugInfo = (void*)GetProcAddress(GetModuleHandle("OmniMIDI"), "GetDriverD
 	DebugInfoFromDriver = KDMGetDebugInfo();
 	
 	//Do something with the info
-	if (!DebugInfoFromDriver)
-		printf("Current rendering time: %d\n", DebugInfoFromDriver->RenderingTime); 
+	if (DebugInfoFromDriver)
+		printf("Current rendering time: %f\n", DebugInfoFromDriver->RenderingTime); 
 	else
 		printf("Failed to get pointer to DebugInfo."); 	
 ...

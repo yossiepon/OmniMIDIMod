@@ -11,6 +11,7 @@ This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/
 ### What's Changed
 
 - **Bug fix:** `DriverSettingsCase` macro ([Issue #274](https://github.com/KeppySoftware/OmniMIDI/issues/274))
+- **DriverSettings GET:** `DriverSettings(OM_GET)` no longer requires `OM_MANAGE` — read-only queries work without side effects
 - **128ch support:** BASSMIDI stream unconditionally initialized with 128 channels
 - **New APIs** for multi-port output:
 
@@ -33,7 +34,7 @@ The `ExtendedDebugInfo` struct is a superset of the original `DebugInfo`, coveri
 | `StructSize` | DWORD | `sizeof(ExtendedDebugInfo)` — for forward-compatible field availability checks |
 | `ModVersionMajor/Minor/Patch` | DWORD | Mod version number |
 | `ModVersionDate` | DWORD | Mod version date (YYYYMMDD) |
-| `RenderingTime` | FLOAT | BASS audio rendering CPU load (%) |
+| `CpuUsage` | FLOAT | BASS audio rendering CPU load (%) — **renamed from `RenderingTime`** |
 | `AudioLatency` | DOUBLE | Audio output latency (ms) |
 | `AudioBufferSize` | DWORD | Buffer size (frames) |
 | `ASIOInputLatency` | DOUBLE | ASIO input latency |
@@ -44,6 +45,12 @@ The `ExtendedDebugInfo` struct is a superset of the original `DebugInfo`, coveri
 | `MaxVoices` | DWORD | Voice limit setting |
 | `ActiveNotesEx[128]` | DWORD[128] | Per-channel active notes (all 8 ports) |
 | `NumChannels` | DWORD | Stream channel count (128 for Mod) |
+| `AudioFrequency` | DWORD | Sample rate (e.g. 48000) |
+| `CurrentEngine` | DWORD | Audio engine (WASAPI/ASIO/XAudio) |
+| `BufferLength` | DWORD | Buffer length (ms) |
+| `OutputVolume` | DWORD | Output volume (0-10000) |
+| `AudioBitDepth` | DWORD | Bit depth (0 = float) |
+| `SincInter` | BOOL | Sinc interpolation ON/OFF |
 
 The struct is updated every 50ms by OmniMIDI's internal supervisor loop. The original `GetDriverDebugInfo()` and its `DebugInfo` struct remain unchanged for upstream compatibility.
 
@@ -70,6 +77,7 @@ The struct may grow in future releases by appending new fields. Check `StructSiz
 | Mod version | StructSize | Last field | Notes |
 |---|---|---|---|
 | 2026-08-25 | 1096 | `NumChannels` (offset 1092) | Initial release |
+| 2026-08-28 | 1120 | `SincInter` (offset 1116) | Added audio settings fields. **Breaking:** `ExtendedDebugInfo.RenderingTime` renamed to `CpuUsage` (same type/offset, source-level change only). `DebugInfo.RenderingTime` is unchanged |
 
 ```cpp
 ExtendedDebugInfo* info = fnGetModExtendedDebugInfo();

@@ -7,7 +7,7 @@
 #define MOD_VER_PATCH     5
 #define MOD_VER_REV       65535
 #define MOD_VER_STRING    "14.8.5.65535"
-#define MOD_VER_DATE_STR  "2026-08-25"
+#define MOD_VER_DATE_STR  "2026-08-28"
 
 #define MOD_COPYRIGHT_YEAR_START  2026
 #define MOD_COPYRIGHT_YEARS  "2026"
