@@ -527,7 +527,11 @@ extern "C" BOOL KDMAPI ReturnKDMAPIVer(LPDWORD Major, LPDWORD Minor, LPDWORD Bui
 
 extern "C" BOOL KDMAPI IsKDMAPIAvailable() {
 	// Parse the current state of the KDMAPI
-	OpenRegistryKey(Configuration, L"Software\\OmniMIDI\\Configuration", TRUE);
+	OpenRegistryKey(Configuration, L"Software\\OmniMIDI\\Configuration", FALSE);
+	if (Configuration.Status != KEY_READY) {
+		PrintMessageToDebugLog("KDMAPI_IKA", "Registry key not found. OmniMIDI may not be installed.");
+		return FALSE;
+	}
 
 	PrintMessageToDebugLog("KDMAPI_IKA", "Interrogating registry about KDMAPI status...");
 	long lResult = RegQueryValueEx(Configuration.Address, L"KDMAPIEnabled", NULL, &dwType, (LPBYTE)& KDMAPIEnabled, &dwSize);
