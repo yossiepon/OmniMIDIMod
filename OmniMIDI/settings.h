@@ -424,7 +424,11 @@ BOOL LoadBASSFunctions() {
 			PrintMessageToDebugLog("ImportBASS", "Importing BASS DLLs to memory...");
 
 			// Load modules
-			OpenRegistryKey(Configuration, L"Software\\OmniMIDI\\Configuration", TRUE);
+			OpenRegistryKey(Configuration, L"Software\\OmniMIDI\\Configuration", FALSE);
+			if (Configuration.Status != KEY_READY) {
+				PrintMessageToDebugLog("ImportBASS", "Registry key not found. OmniMIDI may not be installed.");
+				return FALSE;
+			}
 
 			SetPath(BASS);
 			SetPath(BASSMIDI);
