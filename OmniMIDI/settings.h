@@ -458,6 +458,7 @@ BOOL LoadBASSFunctions() {
 			LoadFuncM(BASS, BASS_ChannelFlags);
 			LoadFuncM(BASS, BASS_ChannelGetAttribute);
 			LoadFuncM(BASS, BASS_ChannelGetData);
+			LoadFuncM(BASS, BASS_ChannelGetInfo);
 			LoadFuncM(BASS, BASS_ChannelGetLevelEx);
 			LoadFuncM(BASS, BASS_ChannelIsActive);
 			LoadFuncM(BASS, BASS_ChannelPlay);
@@ -477,6 +478,7 @@ BOOL LoadBASSFunctions() {
 			LoadFuncM(BASS, BASS_Init);
 			LoadFuncM(BASS, BASS_PluginFree);
 			LoadFuncM(BASS, BASS_PluginLoad);
+			LoadFuncM(BASS, BASS_GetConfig);
 			LoadFuncM(BASS, BASS_SetConfig);
 			LoadFuncM(BASS, BASS_Stop);
 			LoadFuncM(BASS, BASS_StreamFree);
@@ -897,8 +899,8 @@ void LoadSettings(BOOL Restart, BOOL RT)
 		if (TempOV != ManagedSettings.OutputVolume || SettingsManagedByClient) {
 			if (!SettingsManagedByClient) {
 				ManagedSettings.OutputVolume = TempOV;
-				SynthVolume = ManagedSettings.OutputVolume != 0 ? ((float)ManagedSettings.OutputVolume / 10000.0f) : 0.0f;
 			}
+			SynthVolume = ManagedSettings.OutputVolume != 0 ? ((float)ManagedSettings.OutputVolume / 10000.0f) : 0.0f;
 
 			if (RT || Restart)
 				InitializeOrUpdateEffects();
@@ -1251,6 +1253,15 @@ void ParseDebugData() {
 	}
 }
 
+void ResetExtendedDebugAudioFields() {
+	ManagedExtendedDebugInfo.AudioFrequency = 0;
+	ManagedExtendedDebugInfo.AudioBitDepth = 0;
+	ManagedExtendedDebugInfo.AudioSampleFormat = 0;
+	ManagedExtendedDebugInfo.CurrentEngine = 0xFFFFFFFF;
+	ManagedExtendedDebugInfo.OutputVolume = 0xFFFFFFFF;
+	ManagedExtendedDebugInfo.SincInter = (BOOL)-1;
+}
+
 void ParseExtendedDebugData() {
 	ManagedExtendedDebugInfo.StructSize = sizeof(ExtendedDebugInfo);
 	ManagedExtendedDebugInfo.ModVersionMajor = MOD_VER_MAJOR;
@@ -1259,7 +1270,7 @@ void ParseExtendedDebugData() {
 	ManagedExtendedDebugInfo.ModVersionDate = MOD_VER_DATE;
 
 	if (BASSLoadedToMemory && bass_initialized) {
-		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_CPU, &ManagedExtendedDebugInfo.CpuUsage);
+		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_CPU, &ManagedExtendedDebugInfo.RenderLoad);
 
 		ManagedExtendedDebugInfo.AudioLatency = ManagedDebugInfo.AudioLatency;
 		ManagedExtendedDebugInfo.AudioBufferSize = ManagedDebugInfo.AudioBufferSize;
@@ -1289,15 +1300,32 @@ void ParseExtendedDebugData() {
 		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_MIDI_CHANS, &numChans);
 		ManagedExtendedDebugInfo.NumChannels = (DWORD)numChans;
 
-		ManagedExtendedDebugInfo.AudioFrequency = ManagedSettings.AudioFrequency;
-		ManagedExtendedDebugInfo.CurrentEngine = ManagedSettings.CurrentEngine;
-		ManagedExtendedDebugInfo.BufferLength = ManagedSettings.BufferLength;
-		ManagedExtendedDebugInfo.OutputVolume = ManagedSettings.OutputVolume;
-		ManagedExtendedDebugInfo.AudioBitDepth = ManagedSettings.AudioBitDepth;
-		ManagedExtendedDebugInfo.SincInter = ManagedSettings.SincInter;
+		BASS_CHANNELINFO chInfo;
+		BOOL streamActive = BASS_ChannelGetInfo(OMStream, &chInfo);
+		if (streamActive) {
+			ManagedExtendedDebugInfo.AudioFrequency = chInfo.freq;
+			if (chInfo.flags & BASS_SAMPLE_FLOAT) {
+				ManagedExtendedDebugInfo.AudioBitDepth = 32;
+				ManagedExtendedDebugInfo.AudioSampleFormat = 2;
+			} else if (chInfo.flags & BASS_SAMPLE_8BITS) {
+				ManagedExtendedDebugInfo.AudioBitDepth = 8;
+				ManagedExtendedDebugInfo.AudioSampleFormat = 1;
+			} else {
+				ManagedExtendedDebugInfo.AudioBitDepth = 16;
+				ManagedExtendedDebugInfo.AudioSampleFormat = 1;
+			}
+			ManagedExtendedDebugInfo.CurrentEngine = ManagedSettings.CurrentEngine;
+			ManagedExtendedDebugInfo.OutputVolume = (DWORD)(SynthVolume * 10000.0f);
+
+			float sincVal = 0.0f;
+			BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_MIDI_SRC, &sincVal);
+			ManagedExtendedDebugInfo.SincInter = (sincVal != 0.0f) ? TRUE : FALSE;
+		} else {
+			ResetExtendedDebugAudioFields();
+		}
 	}
 	else {
-		ManagedExtendedDebugInfo.CpuUsage = 0.0f;
+		ManagedExtendedDebugInfo.RenderLoad = 0.0f;
 		ManagedExtendedDebugInfo.AudioLatency = 0.0;
 		ManagedExtendedDebugInfo.AudioBufferSize = 0;
 		memset(ManagedExtendedDebugInfo.ActiveVoicesEx, 0, sizeof(ManagedExtendedDebugInfo.ActiveVoicesEx));
@@ -1305,12 +1333,7 @@ void ParseExtendedDebugData() {
 		ManagedExtendedDebugInfo.MaxVoices = 0;
 		memset(ManagedExtendedDebugInfo.ActiveNotesEx, 0, sizeof(ManagedExtendedDebugInfo.ActiveNotesEx));
 		ManagedExtendedDebugInfo.NumChannels = 0;
-		ManagedExtendedDebugInfo.AudioFrequency = 0;
-		ManagedExtendedDebugInfo.CurrentEngine = 0;
-		ManagedExtendedDebugInfo.BufferLength = 0;
-		ManagedExtendedDebugInfo.OutputVolume = 0;
-		ManagedExtendedDebugInfo.AudioBitDepth = 0;
-		ManagedExtendedDebugInfo.SincInter = FALSE;
+		ResetExtendedDebugAudioFields();
 	}
 }
 

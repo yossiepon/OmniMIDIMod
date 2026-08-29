@@ -107,12 +107,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD CallReason, LPVOID lpReserved)
 			return FALSE;
 		}
 
-		// Pre-populate ExtendedDebugInfo header (static fields available before Supervisor starts)
+		// Pre-populate ExtendedDebugInfo (static fields + sentinel values before Supervisor starts)
 		ManagedExtendedDebugInfo.StructSize = sizeof(ExtendedDebugInfo);
 		ManagedExtendedDebugInfo.ModVersionMajor = MOD_VER_MAJOR;
 		ManagedExtendedDebugInfo.ModVersionMinor = MOD_VER_MINOR;
 		ManagedExtendedDebugInfo.ModVersionPatch = MOD_VER_PATCH;
 		ManagedExtendedDebugInfo.ModVersionDate = MOD_VER_DATE;
+		ResetExtendedDebugAudioFields();
 
 		return TRUE;
 	}
