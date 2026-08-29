@@ -135,13 +135,13 @@ typedef struct
 	DWORD ActiveNotesEx[128];		// Per-channel active notes (MIDI_EVENT_NOTES)
 	DWORD NumChannels;				// Stream channel count (BASS_ATTRIB_MIDI_CHANS)
 
-	// Audio settings (IMP-31 extension)
-	DWORD AudioFrequency;			// Sample rate (e.g. 48000)
+	// Audio runtime info (IMP-31 extension, BUG-26: runtime values from BASS API)
+	DWORD AudioFrequency;			// Sample rate from BASS_ChannelGetInfo
 	DWORD CurrentEngine;			// Audio engine (WASAPI/ASIO/XAudio)
-	DWORD BufferLength;				// Buffer length (ms)
-	DWORD OutputVolume;				// Output volume (0-10000)
-	DWORD AudioBitDepth;			// Bit depth (0 = float)
-	BOOL  SincInter;				// Sinc interpolation ON/OFF
+	DWORD OutputVolume;				// Output volume (0-10000) from SynthVolume
+	DWORD AudioBitDepth;			// Bit depth from BASS_ChannelGetInfo flags
+	BOOL  SincInter;				// Sinc interpolation from BASS_ATTRIB_MIDI_SRC
+	DWORD AudioSampleFormat;		// Sample format: 0=unknown, 1=int, 2=float
 } ExtendedDebugInfo;
 
 #ifdef KDMAPI_OMONLY
