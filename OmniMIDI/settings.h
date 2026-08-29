@@ -1270,7 +1270,7 @@ void ParseExtendedDebugData() {
 	ManagedExtendedDebugInfo.ModVersionDate = MOD_VER_DATE;
 
 	if (BASSLoadedToMemory && bass_initialized) {
-		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_CPU, &ManagedExtendedDebugInfo.CpuUsage);
+		BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_CPU, &ManagedExtendedDebugInfo.RenderLoad);
 
 		ManagedExtendedDebugInfo.AudioLatency = ManagedDebugInfo.AudioLatency;
 		ManagedExtendedDebugInfo.AudioBufferSize = ManagedDebugInfo.AudioBufferSize;
@@ -1325,7 +1325,7 @@ void ParseExtendedDebugData() {
 		}
 	}
 	else {
-		ManagedExtendedDebugInfo.CpuUsage = 0.0f;
+		ManagedExtendedDebugInfo.RenderLoad = 0.0f;
 		ManagedExtendedDebugInfo.AudioLatency = 0.0;
 		ManagedExtendedDebugInfo.AudioBufferSize = 0;
 		memset(ManagedExtendedDebugInfo.ActiveVoicesEx, 0, sizeof(ManagedExtendedDebugInfo.ActiveVoicesEx));

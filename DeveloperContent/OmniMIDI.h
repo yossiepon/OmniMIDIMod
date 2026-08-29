@@ -110,7 +110,8 @@ typedef struct
 
 // Extended debug info (OmniMIDI Mod only)
 // Superset of DebugInfo with 128ch support and additional BASSMIDI metrics.
-// Use StructSize to determine field availability for forward compatibility.
+// Use StructSize (>=) to determine field availability for forward compatibility.
+// New fields must be appended at the end to maintain forward compatibility.
 typedef struct
 {
 	// Header
@@ -120,28 +121,30 @@ typedef struct
 	DWORD ModVersionPatch;
 	DWORD ModVersionDate;			// YYYYMMDD format
 
-	// DebugInfo-equivalent fields
-	FLOAT  CpuUsage;				// BASS_ATTRIB_CPU (CPU usage percentage)
-	DOUBLE AudioLatency;			// Audio output latency (ms)
+	// Audio engine configuration (quasi-static, changes only on engine reconfiguration)
+	DWORD CurrentEngine;			// Engine index (0-4, 0xFFFFFFFF=N/A)
+	DWORD AudioFrequency;			// Sample rate (Hz) from BASS_ChannelGetInfo
+	DWORD AudioBitDepth;			// Bit depth (8/16/32) from BASS_ChannelGetInfo flags
+	DWORD AudioSampleFormat;		// 0=unknown, 1=int, 2=float
+	BOOL  SincInter;				// BASS_ATTRIB_MIDI_SRC (TRUE/FALSE, (BOOL)-1=N/A)
+	DWORD OutputVolume;				// 0-10000 from SynthVolume (0xFFFFFFFF=N/A)
+
+	// Audio performance (dynamic)
+	FLOAT  RenderLoad;				// BASS_ATTRIB_CPU: rendering load (%)
+	DOUBLE AudioLatency;			// Output latency (ms)
 	DWORD  AudioBufferSize;			// Buffer size (frames)
 	DOUBLE ASIOInputLatency;
 	DOUBLE ASIOOutputLatency;
+
+	// Soundfont
 	DWORD  CurrentSFList;
 
-	// Extended fields (128ch)
+	// MIDI channel metrics (128ch)
+	DWORD NumChannels;				// BASS_ATTRIB_MIDI_CHANS (Mod=128)
+	DWORD TotalActiveVoices;		// BASS_ATTRIB_MIDI_VOICES_ACTIVE
+	DWORD MaxVoices;				// BASS_ATTRIB_MIDI_VOICES
 	DWORD ActiveVoicesEx[128];		// Per-channel active voices (MIDI_EVENT_VOICES)
-	DWORD TotalActiveVoices;		// All-channel total (BASS_ATTRIB_MIDI_VOICES_ACTIVE)
-	DWORD MaxVoices;				// Voice limit setting (BASS_ATTRIB_MIDI_VOICES)
 	DWORD ActiveNotesEx[128];		// Per-channel active notes (MIDI_EVENT_NOTES)
-	DWORD NumChannels;				// Stream channel count (BASS_ATTRIB_MIDI_CHANS)
-
-	// Audio runtime info (IMP-31 extension, BUG-26: runtime values from BASS API)
-	DWORD AudioFrequency;			// Sample rate from BASS_ChannelGetInfo
-	DWORD CurrentEngine;			// Audio engine (WASAPI/ASIO/XAudio)
-	DWORD OutputVolume;				// Output volume (0-10000) from SynthVolume
-	DWORD AudioBitDepth;			// Bit depth from BASS_ChannelGetInfo flags
-	BOOL  SincInter;				// Sinc interpolation from BASS_ATTRIB_MIDI_SRC
-	DWORD AudioSampleFormat;		// Sample format: 0=unknown, 1=int, 2=float
 } ExtendedDebugInfo;
 
 #ifdef KDMAPI_OMONLY
