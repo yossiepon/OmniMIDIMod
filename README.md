@@ -6,11 +6,15 @@
 
 ## OmniMIDI Mod
 
-This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/OmniMIDI) that adds **KDMAPI multi-port 128-channel support** (8 ports × 16ch) and **extended debug info** with 128-channel synthesizer metrics.
+This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/OmniMIDI) that adds **KDMAPI multi-port 128-channel support** (8 ports × 16ch) and **extended debug info** with 128-channel synthesizer metrics and runtime audio configuration.
 
 ### What's Changed
 
 - **Bug fix:** `DriverSettingsCase` macro ([Issue #274](https://github.com/KeppySoftware/OmniMIDI/issues/274))
+- **Bug fix:** Graceful handling when OmniMIDI is not installed — registry key check prevents crash on systems without OmniMIDI registry entries
+- **Bug fix:** BASS_OUTPUT engine AudioBufferSize/AudioLatency now correctly populated (previously always 0)
+- **Bug fix:** OutputVolume now reflects actual SynthVolume (fixed `SettingsManagedByClient` guard misapplication)
+- **DriverSettings GET:** `DriverSettings(OM_GET)` no longer requires `OM_MANAGE` — read-only queries work without side effects
 - **128ch support:** BASSMIDI stream unconditionally initialized with 128 channels
 - **New APIs** for multi-port output:
 
@@ -26,24 +30,39 @@ This is a modified build of [OmniMIDI v14.8.5](https://github.com/KeppySoftware/
 |---|---|
 | `GetModExtendedDebugInfo()` | Returns a pointer to `ExtendedDebugInfo` struct with 128ch metrics |
 
-The `ExtendedDebugInfo` struct is a superset of the original `DebugInfo`, covering all 128 channels:
+The `ExtendedDebugInfo` struct is a superset of the original `DebugInfo`, covering all 128 channels. Fields are organized in logical groups: header, audio engine configuration (quasi-static), audio performance (dynamic), soundfont, and MIDI channel metrics.
 
-| Field | Type | Description |
-|---|---|---|
-| `StructSize` | DWORD | `sizeof(ExtendedDebugInfo)` — for forward-compatible field availability checks |
-| `ModVersionMajor/Minor/Patch` | DWORD | Mod version number |
-| `ModVersionDate` | DWORD | Mod version date (YYYYMMDD) |
-| `RenderingTime` | FLOAT | BASS audio rendering CPU load (%) |
-| `AudioLatency` | DOUBLE | Audio output latency (ms) |
-| `AudioBufferSize` | DWORD | Buffer size (frames) |
-| `ASIOInputLatency` | DOUBLE | ASIO input latency |
-| `ASIOOutputLatency` | DOUBLE | ASIO output latency |
-| `CurrentSFList` | DWORD | Current SoundFont list index |
-| `ActiveVoicesEx[128]` | DWORD[128] | Per-channel active voices (all 8 ports) |
-| `TotalActiveVoices` | DWORD | All-channel total active voices |
-| `MaxVoices` | DWORD | Voice limit setting |
-| `ActiveNotesEx[128]` | DWORD[128] | Per-channel active notes (all 8 ports) |
-| `NumChannels` | DWORD | Stream channel count (128 for Mod) |
+Audio configuration and performance fields are populated from BASS runtime APIs (`BASS_ChannelGetInfo`, `BASS_ChannelGetAttribute`, etc.), not from registry settings. This ensures the values reflect the actual runtime state.
+
+| Field | Type | Description | Source |
+|---|---|---|---|
+| **Header** | | | |
+| `StructSize` | DWORD | `sizeof(ExtendedDebugInfo)` — for forward-compatible field checks | compile-time |
+| `ModVersionMajor/Minor/Patch` | DWORD | Mod version number | compile-time |
+| `ModVersionDate` | DWORD | Mod version date (YYYYMMDD) | compile-time |
+| **Audio engine config** | | | |
+| `CurrentEngine` | DWORD | Engine index: 0=WAV, 1=BASS, 2=ASIO, 3=WASAPI, 4=XAudio. 0xFFFFFFFF=N/A | ManagedSettings |
+| `AudioFrequency` | DWORD | Sample rate (Hz, e.g. 48000) | `BASS_ChannelGetInfo` |
+| `AudioBitDepth` | DWORD | Bit depth (8, 16, or 32) | `BASS_ChannelGetInfo` flags |
+| `AudioSampleFormat` | DWORD | Sample format: 0=unknown, 1=int, 2=float | `BASS_ChannelGetInfo` flags |
+| `SincInter` | BOOL | Sinc interpolation: TRUE/FALSE, (BOOL)-1=N/A | `BASS_ATTRIB_MIDI_SRC` |
+| `SincConv` | DWORD | SRC quality: 0=Linear, 1=8pt, 2=16pt, 3=32pt, 4=64pt sinc. 0xFFFFFFFF=N/A | `BASS_ATTRIB_SRC` |
+| `OutputVolume` | DWORD | Output volume (0-10000), 0xFFFFFFFF=N/A | SynthVolume |
+| **Audio performance** | | | |
+| `RenderLoad` | FLOAT | BASS audio rendering load (%) | `BASS_ATTRIB_CPU` |
+| `AudioLatency` | DOUBLE | Audio output latency (ms) | engine-specific |
+| `AudioBufferSize` | DWORD | Buffer size (frames) | engine-specific |
+| `ASIODeviceName` | char[32] | ASIO device name (empty when non-ASIO) | `BASS_ASIO_GetDeviceInfo` |
+| **Soundfont** | | | |
+| `CurrentSFList` | DWORD | Current SoundFont list index | internal |
+| **MIDI channel metrics** | | | |
+| `NumChannels` | DWORD | Stream channel count (128 for Mod) | `BASS_ATTRIB_MIDI_CHANS` |
+| `TotalActiveVoices` | DWORD | All-channel total active voices | `BASS_ATTRIB_MIDI_VOICES_ACTIVE` |
+| `MaxVoices` | DWORD | Voice limit setting | `BASS_ATTRIB_MIDI_VOICES` |
+| `ActiveVoicesEx[128]` | DWORD[128] | Per-channel active voices (all 8 ports) | `MIDI_EVENT_VOICES` |
+| `ActiveNotesEx[128]` | DWORD[128] | Per-channel active notes (all 8 ports) | `MIDI_EVENT_NOTES` |
+
+When the BASS stream is not active, audio fields are set to sentinel values (0xFFFFFFFF for DWORD, -1 for BOOL, 0 for FLOAT/DOUBLE). Check `AudioFrequency == 0` or `CurrentEngine == 0xFFFFFFFF` to detect this state.
 
 The struct is updated every 50ms by OmniMIDI's internal supervisor loop. The original `GetDriverDebugInfo()` and its `DebugInfo` struct remain unchanged for upstream compatibility.
 
@@ -70,6 +89,7 @@ The struct may grow in future releases by appending new fields. Check `StructSiz
 | Mod version | StructSize | Last field | Notes |
 |---|---|---|---|
 | 2026-08-25 | 1096 | `NumChannels` (offset 1092) | Initial release |
+| 2026-08-30 | 1144 | `ActiveNotesEx[127]` (offset 1136) | **Breaking from 2026-08-25:** struct reordered into logical groups, `RenderingTime` renamed to `RenderLoad`, audio config fields added (`CurrentEngine` through `OutputVolume` + `SincConv`), `AudioSampleFormat`/`ASIODeviceName` added, `BufferLength`/`ASIOInputLatency`/`ASIOOutputLatency` removed (ADR-0142/0145). `DebugInfo.RenderingTime` unchanged (upstream compat) |
 
 ```cpp
 ExtendedDebugInfo* info = fnGetModExtendedDebugInfo();

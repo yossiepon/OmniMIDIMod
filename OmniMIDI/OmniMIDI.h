@@ -98,7 +98,7 @@ constexpr DWORD _ParseModDate(const char* s) {
 // The debug info struct, you can set the default values by assigning DEFAULT_DEBUG
 typedef struct
 {
-	FLOAT RenderingTime = 0.0f;				// Current BASS rendering time
+	FLOAT RenderingTime = 0.0f;				// BASS_ATTRIB_CPU (CPU usage percentage)
 	DWORD ActiveVoices[16] = { 0 };			// Active voices for each channel
 
 	// ASIO debug info (DO NOT USE)
@@ -124,7 +124,8 @@ typedef struct
 
 // Extended debug info (OmniMIDI Mod only)
 // Superset of DebugInfo with 128ch support and additional BASSMIDI metrics.
-// Use StructSize to determine field availability for forward compatibility.
+// Use StructSize (>=) to determine field availability for forward compatibility.
+// New fields must be appended at the end to maintain forward compatibility.
 typedef struct
 {
 	// Header
@@ -134,20 +135,30 @@ typedef struct
 	DWORD ModVersionPatch;
 	DWORD ModVersionDate;			// YYYYMMDD format
 
-	// DebugInfo-equivalent fields
-	FLOAT  RenderingTime;			// BASS_ATTRIB_CPU
-	DOUBLE AudioLatency;			// Audio output latency (ms)
+	// Audio engine configuration (quasi-static, changes only on engine reconfiguration)
+	DWORD CurrentEngine;			// Engine index (0-4, 0xFFFFFFFF=N/A)
+	DWORD AudioFrequency;			// Sample rate (Hz) from BASS_ChannelGetInfo
+	DWORD AudioBitDepth;			// Bit depth (8/16/32) from BASS_ChannelGetInfo flags
+	DWORD AudioSampleFormat;		// 0=unknown, 1=int, 2=float
+	BOOL  SincInter;				// BASS_ATTRIB_MIDI_SRC (TRUE/FALSE, (BOOL)-1=N/A)
+	DWORD SincConv;					// BASS_ATTRIB_SRC: SRC quality (0=Linear..4=64pt, 0xFFFFFFFF=N/A)
+	DWORD OutputVolume;				// 0-10000 from SynthVolume (0xFFFFFFFF=N/A)
+
+	// Audio performance (dynamic)
+	FLOAT  RenderLoad;				// BASS_ATTRIB_CPU: rendering load (%)
+	DOUBLE AudioLatency;			// Output latency (ms)
 	DWORD  AudioBufferSize;			// Buffer size (frames)
-	DOUBLE ASIOInputLatency;
-	DOUBLE ASIOOutputLatency;
+	char   ASIODeviceName[32];		// ASIO device name (empty when non-ASIO)
+
+	// Soundfont
 	DWORD  CurrentSFList;
 
-	// Extended fields (128ch)
+	// MIDI channel metrics (128ch)
+	DWORD NumChannels;				// BASS_ATTRIB_MIDI_CHANS (Mod=128)
+	DWORD TotalActiveVoices;		// BASS_ATTRIB_MIDI_VOICES_ACTIVE
+	DWORD MaxVoices;				// BASS_ATTRIB_MIDI_VOICES
 	DWORD ActiveVoicesEx[128];		// Per-channel active voices (MIDI_EVENT_VOICES)
-	DWORD TotalActiveVoices;		// All-channel total (BASS_ATTRIB_MIDI_VOICES_ACTIVE)
-	DWORD MaxVoices;				// Voice limit setting (BASS_ATTRIB_MIDI_VOICES)
 	DWORD ActiveNotesEx[128];		// Per-channel active notes (MIDI_EVENT_NOTES)
-	DWORD NumChannels;				// Stream channel count (BASS_ATTRIB_MIDI_CHANS)
 } ExtendedDebugInfo;
 
 #ifdef KDMAPI_OMONLY

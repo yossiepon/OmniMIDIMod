@@ -7,7 +7,7 @@ Thank you Kode54 for allowing me to fork your awesome driver.
 
 #define DriverSettingsCase(Setting, Mode, Type, SettingStruct, Value, cbValue) \
 	case Setting: \
-		if (!SettingsManagedByClient) { PrintMessageToDebugLog(#Setting, "Please send OM_MANAGE first!!!"); return FALSE; } \
+		if (Mode == OM_SET && !SettingsManagedByClient) { PrintMessageToDebugLog(#Setting, "Please send OM_MANAGE first!!!"); return FALSE; } \
 		if (cbValue != sizeof(Type)) return FALSE; \
 		if (Mode == OM_SET) SettingStruct = *(Type*)Value; \
 		else if (Mode == OM_GET) *(Type*)Value = SettingStruct; \
@@ -527,7 +527,11 @@ extern "C" BOOL KDMAPI ReturnKDMAPIVer(LPDWORD Major, LPDWORD Minor, LPDWORD Bui
 
 extern "C" BOOL KDMAPI IsKDMAPIAvailable() {
 	// Parse the current state of the KDMAPI
-	OpenRegistryKey(Configuration, L"Software\\OmniMIDI\\Configuration", TRUE);
+	OpenRegistryKey(Configuration, L"Software\\OmniMIDI\\Configuration", FALSE);
+	if (Configuration.Status != KEY_READY) {
+		PrintMessageToDebugLog("KDMAPI_IKA", "Registry key not found. OmniMIDI may not be installed.");
+		return FALSE;
+	}
 
 	PrintMessageToDebugLog("KDMAPI_IKA", "Interrogating registry about KDMAPI status...");
 	long lResult = RegQueryValueEx(Configuration.Address, L"KDMAPIEnabled", NULL, &dwType, (LPBYTE)& KDMAPIEnabled, &dwSize);

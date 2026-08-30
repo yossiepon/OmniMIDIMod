@@ -611,6 +611,8 @@ void FreeUpBASS() {
 	BASS_StreamFree(OMStream);
 	PrintMessageToDebugLog("FreeUpBASSFunc", "BASS stream freed.");
 
+	ResetExtendedDebugAudioFields();
+
 	//BASS_PluginFree(0);
 	//PrintMessageToDebugLog("FreeUpBASSFunc", "Plug-ins freed.");
 	if (!HostSessionMode) {
@@ -1113,6 +1115,10 @@ BEGSWITCH:
 			PrintMessageToDebugLog("InitializeBASSOutput", "Starting stream...");
 			BASS_ChannelPlay(OMStream, FALSE);
 			CheckUp(FALSE, ERRORCODE, "Channel Play", TRUE);
+
+			DWORD bufMs = BASS_GetConfig(BASS_CONFIG_BUFFER);
+			ManagedDebugInfo.AudioBufferSize = (DWORD)((DOUBLE)bufMs * ManagedSettings.AudioFrequency / 1000.0);
+			ManagedDebugInfo.AudioLatency = (DOUBLE)bufMs;
 
 			InitializationCompleted = TRUE;
 		}
