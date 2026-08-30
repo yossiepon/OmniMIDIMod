@@ -127,14 +127,14 @@ typedef struct
 	DWORD AudioBitDepth;			// Bit depth (8/16/32) from BASS_ChannelGetInfo flags
 	DWORD AudioSampleFormat;		// 0=unknown, 1=int, 2=float
 	BOOL  SincInter;				// BASS_ATTRIB_MIDI_SRC (TRUE/FALSE, (BOOL)-1=N/A)
+	DWORD SincConv;					// BASS_ATTRIB_SRC: SRC quality (0=Linear..4=64pt, 0xFFFFFFFF=N/A)
 	DWORD OutputVolume;				// 0-10000 from SynthVolume (0xFFFFFFFF=N/A)
 
 	// Audio performance (dynamic)
 	FLOAT  RenderLoad;				// BASS_ATTRIB_CPU: rendering load (%)
 	DOUBLE AudioLatency;			// Output latency (ms)
 	DWORD  AudioBufferSize;			// Buffer size (frames)
-	DOUBLE ASIOInputLatency;
-	DOUBLE ASIOOutputLatency;
+	char   ASIODeviceName[32];		// ASIO device name (empty when non-ASIO)
 
 	// Soundfont
 	DWORD  CurrentSFList;
