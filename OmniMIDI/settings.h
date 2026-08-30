@@ -1260,6 +1260,8 @@ void ResetExtendedDebugAudioFields() {
 	ManagedExtendedDebugInfo.CurrentEngine = 0xFFFFFFFF;
 	ManagedExtendedDebugInfo.OutputVolume = 0xFFFFFFFF;
 	ManagedExtendedDebugInfo.SincInter = (BOOL)-1;
+	ManagedExtendedDebugInfo.SincConv = 0xFFFFFFFF;
+	memset(ManagedExtendedDebugInfo.ASIODeviceName, 0, sizeof(ManagedExtendedDebugInfo.ASIODeviceName));
 }
 
 void ParseExtendedDebugData() {
@@ -1274,8 +1276,6 @@ void ParseExtendedDebugData() {
 
 		ManagedExtendedDebugInfo.AudioLatency = ManagedDebugInfo.AudioLatency;
 		ManagedExtendedDebugInfo.AudioBufferSize = ManagedDebugInfo.AudioBufferSize;
-		ManagedExtendedDebugInfo.ASIOInputLatency = ManagedDebugInfo.ASIOInputLatency;
-		ManagedExtendedDebugInfo.ASIOOutputLatency = ManagedDebugInfo.ASIOOutputLatency;
 		ManagedExtendedDebugInfo.CurrentSFList = ManagedDebugInfo.CurrentSFList;
 
 		for (int i = 0; i < 128; ++i) {
@@ -1320,6 +1320,23 @@ void ParseExtendedDebugData() {
 			float sincVal = 0.0f;
 			BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_MIDI_SRC, &sincVal);
 			ManagedExtendedDebugInfo.SincInter = (sincVal != 0.0f) ? TRUE : FALSE;
+
+			float srcVal = 0.0f;
+			BASS_ChannelGetAttribute(OMStream, BASS_ATTRIB_SRC, &srcVal);
+			ManagedExtendedDebugInfo.SincConv = (DWORD)srcVal;
+
+			if (ManagedSettings.CurrentEngine == ASIO_ENGINE) {
+				BASS_ASIO_DEVICEINFO asioDevInfo;
+				DWORD asioDevice = BASS_ASIO_GetDevice();
+				if (BASS_ASIO_GetDeviceInfo(asioDevice, &asioDevInfo) && asioDevInfo.name) {
+					strncpy(ManagedExtendedDebugInfo.ASIODeviceName, asioDevInfo.name, 31);
+					ManagedExtendedDebugInfo.ASIODeviceName[31] = '\0';
+				} else {
+					memset(ManagedExtendedDebugInfo.ASIODeviceName, 0, sizeof(ManagedExtendedDebugInfo.ASIODeviceName));
+				}
+			} else {
+				memset(ManagedExtendedDebugInfo.ASIODeviceName, 0, sizeof(ManagedExtendedDebugInfo.ASIODeviceName));
+			}
 		} else {
 			ResetExtendedDebugAudioFields();
 		}
